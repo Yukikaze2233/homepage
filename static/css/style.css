@@ -641,16 +641,6 @@ footer {
         display: none;
     }
 
-    .a .projectItemRight {
-        display: none;
-
-    }
-
-    .a .projectItemRight img {
-        display: none;
-
-    }
-
     .a .projectItemLeft {
         width: 100%;
     }
