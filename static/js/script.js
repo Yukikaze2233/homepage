@@ -1,4 +1,4 @@
-console.log('%cCopyright © 2024 zyyo.net',
+console.log('%cCopyright © Yukikaze.net',
     'background-color: #ff00ff; color: white; font-size: 24px; font-weight: bold; padding: 10px;'
 );
 console.log('%c   /\\_/\\', 'color: #8B4513; font-size: 20px;');
@@ -223,4 +223,3 @@ window.addEventListener('load', function() {
         pageLoading.style.opacity = '0';
     }, 100);
 });
-
