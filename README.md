@@ -62,6 +62,49 @@
 
 这意味着项目既可以走纯静态托管，也可以走基于 Caddy 的容器部署。
 
+### 6. 贪吃蛇动画层
+- 页面中的贪吃蛇动画资源来自：
+  - `static/svg/snake-Light.svg`
+  - `static/svg/snake-Dark.svg`
+- 这两个文件不是运行时动态计算出来的，而是**预生成的 SVG 动画文件**。
+- 当前文件内部可以直接看到：
+  - `Generated with https://github.com/Platane/snk`
+  - 内嵌的 `<style>`
+  - 大量 `@keyframes`
+
+这说明当前项目中的贪吃蛇动画本质上是一个“生成好的成品 SVG”，网站运行时只负责显示它，而不负责重新计算动画路径。
+
+#### 动画生成逻辑
+Platane/snk 的生成过程可以理解为：
+1. 读取 GitHub contribution graph 数据
+2. 将 contribution heatmap 当作一个网格棋盘
+3. 求解一条蛇的移动路径，让蛇按顺序“吃掉”亮起的格子
+4. 为每个格子生成时间轴
+5. 把时间轴展开成 SVG 内部的 `@keyframes`
+6. 输出最终的 `snake.svg`
+
+#### 为什么本地 SVG 会自己动
+因为动画规则已经直接写进 SVG 文件里：
+- 每个格子都有对应的 class
+- SVG 内部带有 `@keyframes`
+- 浏览器加载 SVG 时，SVG 内部样式就会自动生效
+
+所以页面中只需要像普通图片一样引用：
+
+```html
+<img id="tanChiShe" src="./static/svg/snake-Light.svg" alt="">
+```
+
+主题切换时，再通过 `script.js` 把它切换到暗色版本：
+- `snake-Light.svg`
+- `snake-Dark.svg`
+
+这也是为什么这个动画被称为“预生成”：
+- 网站运行时不需要重新请求 GitHub contribution graph
+- 不需要再求解蛇路径
+- 不需要额外动画脚本参与计算
+- 浏览器只负责渲染已经生成好的 SVG 动画文件
+
 ---
 
 ## 架构图
@@ -85,10 +128,11 @@
         └───────┬───┴───┬───────┘
                 │       │
                 ▼       ▼
-        ┌──────────────────────┐
-        │     static 资源层     │
-        │ img / svg / fonts    │
-        └──────────────────────┘
+        ┌──────────────────────────────┐
+        │         static 资源层         │
+        │ img / svg / fonts            │
+        │ snake-Light.svg / snake-Dark │
+        └──────────────────────────────┘
                 │
                 ▼
         ┌──────────────────────┐
@@ -103,3 +147,4 @@
 ## 外部资源说明
 - 图标资源主要使用了 **iconfont** 风格的 SVG 图标
 - 技能展示图资源可参考 **skill-icons** 生态中的视觉素材形式
+- 贪吃蛇贡献图动画资源基于 **Platane/snk** 生成的 SVG 成品文件
