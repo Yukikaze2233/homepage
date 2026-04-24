@@ -1,0 +1,80 @@
+name: Deploy homepage
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+  schedule:
+    - cron: '15 0 * * *'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Generate daily snake SVGs
+        uses: Platane/snk/svg-only@v3
+        with:
+          github_user_name: ${{ github.repository_owner }}
+          outputs: |
+            static/svg/snake-Light.svg?palette=github-light
+            static/svg/snake-Dark.svg?palette=github-dark
+
+      - name: Commit daily snake update
+        if: github.event_name == 'schedule'
+        env:
+          COMMIT_NAME: ${{ secrets.HOMEPAGE_COMMIT_NAME }}
+          COMMIT_EMAIL: ${{ secrets.HOMEPAGE_COMMIT_EMAIL }}
+        run: |
+          if git diff --quiet -- static/svg/snake-Light.svg static/svg/snake-Dark.svg; then
+            echo "No snake changes to commit."
+            exit 0
+          fi
+
+          git config user.name "${COMMIT_NAME:-github-actions[bot]}"
+          git config user.email "${COMMIT_EMAIL:-41898282+github-actions[bot]@users.noreply.github.com}"
+          git add static/svg/snake-Light.svg static/svg/snake-Dark.svg
+          git commit -m "chore: refresh snake animation [skip ci]"
+          git push
+
+      - name: Prepare Pages artifact
+        run: |
+          mkdir -p _site
+          rsync -av --delete \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '_site/' \
+            ./ _site/
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
